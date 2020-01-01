@@ -1,0 +1,11 @@
+[package]
+name = "stick_game"
+version = "0.1.0"
+authors = ["Martin Pinholt <mapi@itu.dk>"]
+edition = "2018"
+
+[dependencies]
+sdl2 = "0.32"
+nalgebra = "0.19"
+anyhow = "1.0.26"
+gl = "0.14.0"

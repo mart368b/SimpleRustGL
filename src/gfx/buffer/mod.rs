@@ -1,8 +1,8 @@
 mod vbo;
 mod vao;
-mod index_vbo;
+mod ebo;
 
-pub use index_vbo::IndexVbo;
+pub use ebo::Ebo;
 pub use vao::Vao;
 pub use vbo::{Vbo, VboDataType, VboData};
 
@@ -45,5 +45,41 @@ impl Primitive {
             Primitive::Double => std::mem::size_of::<f64>(),
         };
         size as GLuint
+    }
+}
+
+pub enum Format {
+    Points,
+    LineStrip,
+    LineLoop,
+    Lines,
+    LineStripAdj,
+    LinesAdj,
+    TriangleStrip,
+    TriangleFan,
+    Triangles,
+    TriangleStripAdj,
+    TriangleAdj,
+    Patches,
+    Quard
+}
+
+impl Format {
+    pub fn value(&self) -> GLenum {
+        match self {
+            Format::Points => gl::POINTS,
+            Format::LineStrip => gl::LINE_STRIP,
+            Format::LineLoop => gl::LINE_LOOP,
+            Format::Lines => gl::LINES,
+            Format::LineStripAdj => gl::LINE_STRIP_ADJACENCY,
+            Format::LinesAdj => gl::LINES_ADJACENCY,
+            Format::TriangleStrip => gl::TRIANGLE_STRIP,
+            Format::TriangleFan => gl::TRIANGLE_FAN,
+            Format::Triangles => gl::TRIANGLES,
+            Format::TriangleStripAdj => gl::TRIANGLE_STRIP_ADJACENCY,
+            Format::TriangleAdj => gl::TRIANGLES_ADJACENCY,
+            Format::Patches => gl::PATCHES,
+            Format::Quard => gl::QUADS,
+        }
     }
 }

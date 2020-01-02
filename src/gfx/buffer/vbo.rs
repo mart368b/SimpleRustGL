@@ -1,6 +1,7 @@
 use gl::types::*;
 use std::marker::PhantomData;
-use super::Primitive;
+use super::{Primitive, Format};
+use crate::gfx::get_value;
 
 pub trait VboData {
     fn prototype() -> Vec<(Primitive, GLuint)>;
@@ -33,11 +34,9 @@ where
     T: Sized + VboData
 {
     pub fn new() -> Vbo<T> {
-        let mut id = 0;
-
-        unsafe {
-            gl::GenBuffers(1, &mut id);
-        }
+        let mut id = get_value(0, |id|unsafe {
+            gl::GenBuffers(1, id);
+        });
 
         Vbo {
             id,

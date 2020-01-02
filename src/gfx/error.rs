@@ -27,7 +27,7 @@ fn get_error<Len, Log>(get_len: Len, get_log: Log) -> Error
 pub fn get_program_error(id: GLuint) -> Error {
     get_error(
         |len| unsafe {
-            gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, len);
+            gl::GetProgramiv(id, gl::INFO_LOG_LENGTH, len);
         },
         |len, log| unsafe {
             gl::GetProgramInfoLog(

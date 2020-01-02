@@ -18,16 +18,12 @@ pub use gfx::buffer::*;
 pub struct Vertex {
     x: f32,
     y: f32,
-    r: f32,
-    g: f32,
-    b: f32,
 }
 
 impl VboData for Vertex {
     fn prototype() -> Vec<(Primitive, u32)> {
         vec![
-            (Primitive::Float, 2),
-            (Primitive::Float, 3)
+            (Primitive::Float, 2)
         ]
     }
 }
@@ -53,41 +49,102 @@ fn main() -> Result<()> {
 
     // CREATE SHADER
     let vert_shader = VertexShader::from_source("\
-        #version 330 core
-        
-        layout (location = 0) in vec2 Position;
-        layout (location = 1) in vec3 Color;
+    #version 330 core
+    
+    layout (location = 0) in vec2 Position;
 
-        out VS_OUTPUT {
-            vec3 Color;
-        } OUT;
-
-        void main()
-        {
-            gl_Position = vec4(Position, 1.0, 1.0);
-            OUT.Color = Color;
-        }\
+    void main()
+    {
+        gl_Position = vec4(Position, 1.0, 1.0);
+    }\
     ")?;
 
-    let frag_shader = FragmentShader::from_source("\
-        #version 330 core
+    let geom_shader = GeometryShader::from_source("\
+    #version 330 core
+    layout (lines_adjacency) in;
+    layout (triangle_strip, max_vertices = 6) out;
 
-        in VS_OUTPUT {
-            vec3 Color;
-        } IN;
+    out VertexData {
+        vec3 position;
+        flat vec4 amount;
+        flat bool right;
+    } vertex_out;
+
+    void main() {
+        vertex_out.amount = vec4(1, 0, 1, 1);
         
-        out vec4 Color;
+        gl_Position = gl_in[0].gl_Position;
+        vertex_out.position = vec3(1, 0, 0);
+        EmitVertex();
+        gl_Position = gl_in[1].gl_Position;
+        vertex_out.position = vec3(0, 0, 1);
+        EmitVertex();
+        gl_Position = gl_in[2].gl_Position;
+        vertex_out.position = vec3(0, 1, 0);
+        vertex_out.right = true;
+        EmitVertex();
         
-        void main()
-        {
-            Color = vec4(IN.Color, 1.0f);
-        }\
+        gl_Position = gl_in[0].gl_Position;
+        vertex_out.position = vec3(1, 0, 0);
+        EmitVertex();
+        gl_Position = gl_in[2].gl_Position;
+        vertex_out.position = vec3(0, 1, 0);
+        EmitVertex();
+        gl_Position = gl_in[3].gl_Position;
+        vertex_out.position = vec3(0, 0, 1);
+        vertex_out.right = false;
+        EmitVertex();
+
+        EndPrimitive();
+    }  \
     ")?;
     
+    let frag_shader = FragmentShader::from_source("\
+    #version 330 core
+
+    const vec2 p0 = vec2(0, 0);
+    const vec2 p1 = vec2(1, 0);
+    const vec2 p2 = vec2(1, 1);
+    const vec2 p3 = vec2(0, 1);
+    
+    in VertexData {
+        vec3 position;
+        flat vec4 amount;
+        flat bool right;
+    } vertex;
+
+    float sampleQuad(vec2 pos) {
+        return mix (
+            mix(vertex.amount[0], vertex.amount[1], pos[0]),
+            mix(vertex.amount[2], vertex.amount[3], pos[0]),
+            pos[1]
+        );
+    }
+
+    out vec4 Color;
+    
+    void main()
+    {
+        vec2 pos;
+        if (vertex.right) {
+            pos = p0 * vertex.position.x + p2 * vertex.position.y + p1 * vertex.position.z;
+        }else {
+            pos = p0 * vertex.position.x + p2 * vertex.position.y + p3 * vertex.position.z;
+        }
+        float sample = sampleQuad(pos);
+        if (sample > 0.6) {
+            Color = vec4(1);
+        }else {
+            Color = vec4(0);
+        }
+    }\
+    ")?;
+        
     //CREATE PROGRAM
     let mut program = Program::from_shaders(vec![
         Rc::new(vert_shader),
-        Rc::new(frag_shader)
+        Rc::new(geom_shader),
+        Rc::new(frag_shader),
     ])?;
     program.set_used();
     
@@ -95,30 +152,26 @@ fn main() -> Result<()> {
     let mut vbo = Vbo::new();
     vbo.bind_data(
         &[
-            Vertex{ x: -0.5, y: -0.5,    r: 1.0, g: 0.0, b: 0.0},
-
-            Vertex{ x: -0.5, y: -0.5,    r: 1.0, g: 0.0, b: 0.0},
-            Vertex{ x:  0.5, y: -0.5,    r: 0.0, g: 1.0, b: 0.0},
-            Vertex{ x:  0.0, y:  0.5,    r: 0.0, g: 0.0, b: 1.0},
-
-            Vertex{ x: -0.5, y: -0.5,    r: 1.0, g: 0.0, b: 0.0},
+            Vertex{ x: -0.9, y: 0.9 },
+            Vertex{ x: 0.9, y: 0.9 },
+            Vertex{ x: 0.9, y: -0.9 },
+            Vertex{ x: -0.9, y: -0.9 },
         ],
         VboDataType::Static
     );
 
+    let mut ebo = Ebo::new();
+    ebo.bind_int(&[
+        0, 1, 2, 3
+    ], VboDataType::Static);
+
     //CREATE VAO
-     let mut vao = Vao::new();
+     let mut vao = Vao::new(Format::LinesAdj);
      vao.bind_vbo(
          &mut vbo
      );
 
-     let mut index = IndexVbo::new();
-    index.bind_int(
-        &[
-            1, 2, 3
-        ],
-        VboDataType::Static
-    );
+     ebo.bind();
     
     unsafe {
         gl::Viewport(0, 0, 900, 700);
@@ -142,15 +195,10 @@ fn main() -> Result<()> {
         }
 
         // DRAW VAO
-        vao.draw_elements(
-            gl::TRIANGLES,
-            3,
-            Primitive::UInt,
-            0,
-        );
+        vao.draw_elements(4, Primitive::UInt, 0);
 
         window.gl_swap_window();
-        std::thread::sleep(Duration::from_millis(10))
+        std::thread::sleep(Duration::from_millis(30))
     }
     Ok(())
 }

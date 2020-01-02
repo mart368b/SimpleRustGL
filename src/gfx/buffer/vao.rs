@@ -1,22 +1,25 @@
 use gl::types::*;
 use std::marker::PhantomData;
-use super::{Primitive, Vbo, VboData, VboDataType};
+use super::{Primitive, Vbo, VboData, VboDataType, Format};
+use crate::gfx::get_value;
 
 pub struct Vao {
     id: GLuint,
-    locations: GLuint
+    locations: GLuint,
+    format: Format
 }
 
 impl Vao {
-    pub fn new() -> Vao {
-        let mut id = 0;
-        unsafe {
-            gl::GenVertexArrays(1, &mut id);
-        }
-
+    pub fn new(format: Format) -> Vao {
+        
+        let mut id = get_value(0, |id| unsafe {
+            gl::GenVertexArrays(1, id);
+        });
+        
         Vao { 
             id,
-            locations: 0
+            locations: 0,
+            format: format
         }
     }
 
@@ -38,13 +41,13 @@ impl Vao {
         let prototype = T::prototype();
         let prototype_len = prototype.iter().fold(0, |acc, (ty, count)| acc + ty.size() * count);
         assert_eq!(std::mem::size_of::<T>() as GLuint, prototype_len);
-        self.bind_points(
+        self.bind_prototype(
             prototype
         );
         i0
     }
 
-    pub fn bind_points(
+    pub fn bind_prototype(
         &mut self,
         prototype: Vec<(Primitive, GLuint)>
     ) {
@@ -68,7 +71,7 @@ impl Vao {
         self.locations += prototype.len() as GLuint;
     }
 
-    pub fn attr_points(
+    pub fn bind_attribute(
         &mut self,
         id: GLuint,
         pre_offset: GLuint,
@@ -90,20 +93,20 @@ impl Vao {
         }
     }
 
-    pub fn draw_arrays(&mut self, format: GLenum, i0:GLuint, len: GLuint) {
+    pub fn draw_arrays(&mut self, i0:GLuint, len: GLuint) {
         unsafe {
             gl::DrawArrays(
-                format,
+                self.format.value(),
                 i0 as GLint,
                 len as GLint,
             );
         }
     }
 
-    pub fn draw_elements(&mut self, format: GLenum, len: GLuint, ty: Primitive, i0: GLuint) {
+    pub fn draw_elements(&mut self, len: GLuint, ty: Primitive, i0: GLuint) {
         unsafe {
             gl::DrawElements(
-                format,
+                self.format.value(),
                 len as GLint,
                 ty.value(),
                 i0 as *const GLvoid,

@@ -1,19 +1,18 @@
 use gl::types::*;
 use super::VboDataType;
+use crate::gfx::get_value;
 
-pub struct IndexVbo {
+pub struct Ebo {
     id: GLuint,
 }
 
-impl IndexVbo {
-    pub fn new() -> IndexVbo {
-        let mut id = 0;
+impl Ebo {
+    pub fn new() -> Ebo {
+        let mut id = get_value(0, |id| unsafe {
+            gl::GenBuffers(1, id);
+        });
 
-        unsafe {
-            gl::GenBuffers(1, &mut id);
-        }
-
-        IndexVbo {
+        Ebo {
             id,
         }
     }
@@ -42,7 +41,7 @@ impl IndexVbo {
 }
 
 
-impl Drop for IndexVbo {
+impl Drop for Ebo {
     fn drop(&mut self) {
         unsafe {
             gl::DeleteBuffers(1, &self.id);

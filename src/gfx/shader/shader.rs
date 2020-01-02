@@ -1,6 +1,8 @@
 pub use gl::types::*;
 pub use anyhow::{Result, anyhow};
 pub use crate::gfx::error::get_shader_error;
+use crate::gfx::get_value;
+use std::ffi::CString;
 
 pub trait ShaderExt {
     fn new() -> Self;
@@ -43,11 +45,12 @@ where
             Q: AsRef<Vec<S>>,
             S: AsRef<str>
     {
+
         let sources = sources.as_ref();
-        let sources_raw: Vec<&str> = sources
+        let sources_raw: Vec<CString> = sources
             .iter()
             .map(|s| {
-                s.as_ref()
+                CString::new(s.as_ref()).unwrap()
             })
             .collect();
 
@@ -71,10 +74,9 @@ where
             gl::CompileShader(self.id);
         }
 
-        let mut success: GLint = 1;
-        unsafe {
-            gl::GetShaderiv(self.id, gl::COMPILE_STATUS, &mut success);
-        }
+        let mut success: GLint = get_value(1, |success|unsafe {
+            gl::GetShaderiv(self.id, gl::COMPILE_STATUS, success);
+        });
 
         match success {
             1 => Ok(()),

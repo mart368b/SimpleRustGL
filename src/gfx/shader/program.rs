@@ -4,6 +4,7 @@ use super::*;
 use anyhow::{Result, anyhow};
 use crate::gfx::error::get_program_error;
 use std::rc::Rc;
+use crate::gfx::get_value;
 
 pub trait ProgramAttachment {
     fn id(&self) -> GLuint;
@@ -55,10 +56,9 @@ impl Program {
     pub fn link(&mut self) -> Result<()> {
         unsafe { gl::LinkProgram(self.id); }
 
-        let mut success: gl::types::GLint = 1;
-        unsafe {
-            gl::GetProgramiv(self.id, gl::LINK_STATUS, &mut success);
-        }
+        let mut success = get_value(1, |success|unsafe {
+            gl::GetProgramiv(self.id, gl::LINK_STATUS, success);
+        });
 
         match success {
             1 => Ok(()),

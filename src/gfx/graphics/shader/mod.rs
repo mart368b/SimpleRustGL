@@ -1,11 +1,9 @@
-mod shader;
-mod vertex;
 mod fragment;
 mod geometry;
-mod program;
+mod shader;
+mod vertex;
 
 pub use vertex::VertexShader;
 pub use fragment::FragmentShader;
-pub use shader::{Shader, ShaderExt};
 pub use geometry::GeometryShader;
-pub use program::Program;
+pub use shader::{Shader, ShaderExt};

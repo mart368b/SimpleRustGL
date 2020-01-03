@@ -1,11 +1,10 @@
 use gl::types::*;
 use std::marker::PhantomData;
-use super::{Primitive, Vbo, VboData, VboDataType, Format};
+use super::{Primitive, Vbo, VboData, BufferType, Format};
 use crate::gfx::get_value;
 
 pub struct Vao {
     id: GLuint,
-    locations: GLuint,
     format: Format
 }
 
@@ -18,7 +17,6 @@ impl Vao {
         
         Vao { 
             id,
-            locations: 0,
             format: format
         }
     }
@@ -29,36 +27,40 @@ impl Vao {
         }
     }
 
-    pub fn bind_vbo<T>(
+    pub fn bind_vbo<T, Ty>(
         &mut self,
-        vbo: &mut Vbo<T>
+        location: GLuint,
+        vbo: &mut Vbo<T, Ty>
     ) -> GLuint
     where
-        T: VboData + Sized
+        T: VboData + Sized,
+        Ty: BufferType
     {
         vbo.bind();
-        let i0 = self.locations;
         let prototype = T::prototype();
         let prototype_len = prototype.iter().fold(0, |acc, (ty, count)| acc + ty.size() * count);
         assert_eq!(std::mem::size_of::<T>() as GLuint, prototype_len);
         self.bind_prototype(
+            location,
             prototype
         );
-        i0
+        location + prototype_len
     }
 
     pub fn bind_prototype(
         &mut self,
+        location: GLuint,
         prototype: Vec<(Primitive, GLuint)>
     ) {
         let prototype_len = prototype.iter().fold(0, |acc, (ty, count)| acc + ty.size() * count);
+
         self.bind();
         let mut offset: GLuint = 0;
         for (id, (ty, count)) in prototype.iter().enumerate() {
             unsafe {
                 gl::EnableVertexAttribArray(id as GLuint);
                 gl::VertexAttribPointer(
-                    (id as GLuint) + self.locations,
+                    (id as GLuint) + location,
                     *count as GLint,
                     ty.value(),
                     gl::FALSE,
@@ -66,9 +68,14 @@ impl Vao {
                     offset as *const GLvoid,
                 );
             }
+            println!("{}, {}, {}, {}", 
+                (id as GLuint) + location,
+                *count as GLint,
+                prototype_len as gl::types::GLint,
+                offset,
+            );
             offset += ty.size() * count;
         }
-        self.locations += prototype.len() as GLuint;
     }
 
     pub fn bind_attribute(

@@ -4,7 +4,7 @@ use anyhow::Result;
 
 pub type GeometryShader = Shader<Geometry>;
 
-pub struct Geometry {}
+pub struct Geometry();
 
 impl ShaderExt for Geometry {
     fn new() -> Geometry {

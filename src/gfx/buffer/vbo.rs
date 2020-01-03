@@ -1,47 +1,53 @@
 use gl::types::*;
 use std::marker::PhantomData;
-use super::{Primitive, Format};
+use super::{Primitive, Format, BufferType};
 use crate::gfx::get_value;
+
+use std::borrow::{BorrowMut, Borrow};
 
 pub trait VboData {
     fn prototype() -> Vec<(Primitive, GLuint)>;
 }
 
-pub enum VboDataType {
-    Static,
-    Dynamic,
-}
-
-impl VboDataType {
-    pub fn value(&self) -> GLenum {
-        match self {
-            VboDataType::Static => gl::STATIC_DRAW,
-            VboDataType::Dynamic => gl::DYNAMIC_DRAW,
-        }
-    }
-}
-
-pub struct Vbo<T> 
+pub struct Vbo<T, Ty> 
 where
-    T: Sized + VboData
+    T: Sized + VboData,
+    Ty: BufferType
 {
     id: GLuint,
-    data: PhantomData<T>
+    len: usize,
+    data: PhantomData<T>,
+    ty: PhantomData<Ty>
 }
 
-impl<T> Vbo<T> 
+impl<T, Ty> Vbo<T, Ty> 
 where
-    T: Sized + VboData
+    T: Sized + VboData,
+    Ty: BufferType
 {
-    pub fn new() -> Vbo<T> {
+    pub fn new(data: &[T]) -> Vbo<T, Ty> {
         let mut id = get_value(0, |id|unsafe {
             gl::GenBuffers(1, id);
         });
 
-        Vbo {
+        let mut vbo = Vbo {
             id,
-            data: PhantomData
+            len: data.len(),
+            data: PhantomData,
+            ty: PhantomData
+        };
+
+        vbo.bind();
+        unsafe {
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (data.len() * std::mem::size_of::<T>()) as gl::types::GLsizeiptr,
+                data as *const [T] as *const GLvoid,
+                Ty::value(),
+            );
         }
+
+        vbo
     }
 
     pub fn id(&self) -> GLuint {
@@ -54,23 +60,44 @@ where
         }
     }
 
-    pub fn bind_data(&mut self, data: &[T], data_type: VboDataType) {
+    pub fn update(&mut self, data: &[T], offset: GLuint) {
         self.bind();
+        self.len = data.len();
         unsafe {
-            gl::BufferData(
+            gl::BufferSubData(
                 gl::ARRAY_BUFFER,
+                (offset as usize * std::mem::size_of::<T>()) as isize,
                 (data.len() * std::mem::size_of::<T>()) as gl::types::GLsizeiptr,
-                data as *const [T] as *const GLvoid,
-                data_type.value(),
+                data as *const [T] as *const GLvoid
             );
         }
     }
 }
 
-
-impl<T> Drop for Vbo<T> 
+impl<'a, T, Ty> AsRef<[T]> for Vbo<T, Ty> 
 where
-    T: Sized + VboData
+    T: Sized + VboData,
+    Ty: BufferType
+{
+    fn as_ref(&self) -> &[T] {
+        let ptr = unsafe {
+            gl::MapBuffer(
+                gl::ARRAY_BUFFER,
+                gl::READ_ONLY
+            )
+        } as *const T;
+
+        unsafe {
+            std::slice::from_raw_parts(ptr as *const T, self.len)
+        }
+    }
+}
+
+
+impl<T, Ty> Drop for Vbo<T, Ty> 
+where
+    T: Sized + VboData,
+    Ty: BufferType
 {
     fn drop(&mut self) {
         unsafe {

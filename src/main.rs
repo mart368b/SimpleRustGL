@@ -11,19 +11,22 @@ use std::rc::Rc;
 use std::time::Duration;
 
 mod gfx;
-pub use gfx::shader::*;
+pub use gfx::graphics::*;
 pub use gfx::buffer::*;
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct Vertex {
     x: f32,
     y: f32,
+    amount: f32
 }
 
 impl VboData for Vertex {
     fn prototype() -> Vec<(Primitive, u32)> {
         vec![
-            (Primitive::Float, 2)
+            (Primitive::Float, 2),
+            (Primitive::Float, 1)
         ]
     }
 }
@@ -52,10 +55,16 @@ fn main() -> Result<()> {
     #version 330 core
     
     layout (location = 0) in vec2 Position;
+    layout (location = 1) in float Amount;
+
+    out VertexOut {
+        float Amount;
+    } vertex_out;
 
     void main()
     {
-        gl_Position = vec4(Position, 1.0, 1.0);
+        gl_Position = vec4(Position.xy, 1.0, 1.0);
+        vertex_out.Amount = Amount;
     }\
     ")?;
 
@@ -64,14 +73,23 @@ fn main() -> Result<()> {
     layout (lines_adjacency) in;
     layout (triangle_strip, max_vertices = 6) out;
 
+    in VertexOut {
+        float Amount;
+    } vertex_in[]; 
+
     out VertexData {
         vec3 position;
-        flat vec4 amount;
+        flat vec4 Amount;
         flat bool right;
     } vertex_out;
 
     void main() {
-        vertex_out.amount = vec4(1, 0, 1, 1);
+        vertex_out.Amount = vec4(
+            vertex_in[0].Amount,
+            vertex_in[1].Amount,
+            vertex_in[2].Amount,
+            vertex_in[3].Amount
+        );
         
         gl_Position = gl_in[0].gl_Position;
         vertex_out.position = vec3(1, 0, 0);
@@ -109,14 +127,14 @@ fn main() -> Result<()> {
     
     in VertexData {
         vec3 position;
-        flat vec4 amount;
+        flat vec4 Amount;
         flat bool right;
     } vertex;
 
     float sampleQuad(vec2 pos) {
         return mix (
-            mix(vertex.amount[0], vertex.amount[1], pos[0]),
-            mix(vertex.amount[2], vertex.amount[3], pos[0]),
+            mix(vertex.Amount[0], vertex.Amount[1], pos[0]),
+            mix(vertex.Amount[2], vertex.Amount[3], pos[0]),
             pos[1]
         );
     }
@@ -132,11 +150,7 @@ fn main() -> Result<()> {
             pos = p0 * vertex.position.x + p2 * vertex.position.y + p3 * vertex.position.z;
         }
         float sample = sampleQuad(pos);
-        if (sample > 0.6) {
-            Color = vec4(1);
-        }else {
-            Color = vec4(0);
-        }
+        Color = vec4(sample, pos[0], pos[1], 1);
     }\
     ")?;
         
@@ -147,31 +161,32 @@ fn main() -> Result<()> {
         Rc::new(frag_shader),
     ])?;
     program.set_used();
-    
+
     // CREATE VBO
-    let mut vbo = Vbo::new();
-    vbo.bind_data(
+    let mut vbo: Vbo<Vertex, DynamicBuffer> = Vbo::new(
         &[
-            Vertex{ x: -0.9, y: 0.9 },
-            Vertex{ x: 0.9, y: 0.9 },
-            Vertex{ x: 0.9, y: -0.9 },
-            Vertex{ x: -0.9, y: -0.9 },
-        ],
-        VboDataType::Static
+            Vertex{ x: -0.9, y: -0.9, amount: 0.0 },
+            Vertex{ x: -0.9, y:  0.9, amount: 1.0 },
+            Vertex{ x:  0.9, y:  0.9, amount: 0.0 },
+            Vertex{ x:  0.9, y: -0.9, amount: 1.0 },
+        ]
     );
 
-    let mut ebo = Ebo::new();
-    ebo.bind_int(&[
-        0, 1, 2, 3
-    ], VboDataType::Static);
-
     //CREATE VAO
-     let mut vao = Vao::new(Format::LinesAdj);
-     vao.bind_vbo(
-         &mut vbo
-     );
+    let mut vao = Vao::new(Format::LinesAdj);
+    vao.bind_vbo(
+        0,
+        &mut vbo
+    );
 
-     ebo.bind();
+     // CREATE EBO
+    let mut ebo: Ebo<u32, StaticBuffer> = Ebo::new(
+        &[
+            0, 1, 2, 3
+        ]
+    );
+
+    ebo.bind();
     
     unsafe {
         gl::Viewport(0, 0, 900, 700);

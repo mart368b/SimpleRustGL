@@ -4,7 +4,7 @@ use anyhow::Result;
 
 pub type FragmentShader = Shader<Fragment>;
 
-pub struct Fragment {}
+pub struct Fragment();
 
 impl ShaderExt for Fragment {
     fn new() -> Fragment {

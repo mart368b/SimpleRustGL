@@ -1,6 +1,6 @@
 use gl::types::*;
 use std::marker::PhantomData;
-use super::{Primitive, Format, BufferType};
+use super::{Primitive, Format, BufferType, ReadBufferMap, WriteBufferMap, DynamicBuffer};
 use crate::gfx::get_value;
 
 use std::borrow::{BorrowMut, Borrow};
@@ -72,14 +72,8 @@ where
             );
         }
     }
-}
 
-impl<'a, T, Ty> AsRef<[T]> for Vbo<T, Ty> 
-where
-    T: Sized + VboData,
-    Ty: BufferType
-{
-    fn as_ref(&self) -> &[T] {
+    pub fn read<'a>(&self) -> ReadBufferMap<'a, T>{
         let ptr = unsafe {
             gl::MapBuffer(
                 gl::ARRAY_BUFFER,
@@ -87,12 +81,37 @@ where
             )
         } as *const T;
 
-        unsafe {
-            std::slice::from_raw_parts(ptr as *const T, self.len)
+        ReadBufferMap {
+            id: self.id,
+            buffer: unsafe {
+                std::slice::from_raw_parts(ptr as *const T, self.len)
+            }
+        }
+    }
+
+    
+}
+
+impl<T> Vbo<T, DynamicBuffer> 
+where
+    T: Sized + VboData,
+{
+    pub fn write<'a>(&self) -> WriteBufferMap<'a, T>{
+        let ptr = unsafe {
+            gl::MapBuffer(
+                gl::ARRAY_BUFFER,
+                gl::READ_WRITE
+            )
+        } as *const T;
+
+        WriteBufferMap {
+            id: self.id,
+            buffer: unsafe {
+                std::slice::from_raw_parts_mut(ptr as *mut T, self.len)
+            }
         }
     }
 }
-
 
 impl<T, Ty> Drop for Vbo<T, Ty> 
 where

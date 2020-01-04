@@ -1,35 +1,19 @@
-extern crate sdl2;
-extern crate gl;
-
 use anyhow::Result;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::video::GLProfile;
+use sdl2::mouse::MouseWheelDirection;
 
-use std::rc::Rc;
 use std::time::Duration;
 
-mod gfx;
-pub use gfx::graphics::*;
-pub use gfx::buffer::*;
+pub mod gfx;
 
-#[derive(Debug)]
-#[repr(C)]
-pub struct Vertex {
-    x: f32,
-    y: f32,
-    amount: f32
-}
+mod application;
+use application::{Graphics, World};
 
-impl VboData for Vertex {
-    fn prototype() -> Vec<(Primitive, u32)> {
-        vec![
-            (Primitive::Float, 2),
-            (Primitive::Float, 1)
-        ]
-    }
-}
+type Vector2 = nalgebra::Vector2<f32>;
+type Vector3 = nalgebra::Vector3<f32>;
 
 fn main() -> Result<()> {
     let sdl = sdl2::init().unwrap();
@@ -51,142 +35,10 @@ fn main() -> Result<()> {
     let _gl = gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
     // CREATE SHADER
-    let vert_shader = VertexShader::from_source("\
-    #version 330 core
-    
-    layout (location = 0) in vec2 Position;
-    layout (location = 1) in float Amount;
-
-    out VertexOut {
-        float Amount;
-    } vertex_out;
-
-    void main()
-    {
-        gl_Position = vec4(Position.xy, 1.0, 1.0);
-        vertex_out.Amount = Amount;
-    }\
-    ")?;
-
-    let geom_shader = GeometryShader::from_source("\
-    #version 330 core
-    layout (lines_adjacency) in;
-    layout (triangle_strip, max_vertices = 6) out;
-
-    in VertexOut {
-        float Amount;
-    } vertex_in[]; 
-
-    out VertexData {
-        vec3 position;
-        flat vec4 Amount;
-        flat bool right;
-    } vertex_out;
-
-    void main() {
-        vertex_out.Amount = vec4(
-            vertex_in[0].Amount,
-            vertex_in[1].Amount,
-            vertex_in[2].Amount,
-            vertex_in[3].Amount
-        );
-        
-        gl_Position = gl_in[0].gl_Position;
-        vertex_out.position = vec3(1, 0, 0);
-        EmitVertex();
-        gl_Position = gl_in[1].gl_Position;
-        vertex_out.position = vec3(0, 0, 1);
-        EmitVertex();
-        gl_Position = gl_in[2].gl_Position;
-        vertex_out.position = vec3(0, 1, 0);
-        vertex_out.right = true;
-        EmitVertex();
-        
-        gl_Position = gl_in[0].gl_Position;
-        vertex_out.position = vec3(1, 0, 0);
-        EmitVertex();
-        gl_Position = gl_in[2].gl_Position;
-        vertex_out.position = vec3(0, 1, 0);
-        EmitVertex();
-        gl_Position = gl_in[3].gl_Position;
-        vertex_out.position = vec3(0, 0, 1);
-        vertex_out.right = false;
-        EmitVertex();
-
-        EndPrimitive();
-    }  \
-    ")?;
-    
-    let frag_shader = FragmentShader::from_source("\
-    #version 330 core
-
-    const vec2 p0 = vec2(0, 0);
-    const vec2 p1 = vec2(1, 0);
-    const vec2 p2 = vec2(1, 1);
-    const vec2 p3 = vec2(0, 1);
-    
-    in VertexData {
-        vec3 position;
-        flat vec4 Amount;
-        flat bool right;
-    } vertex;
-
-    float sampleQuad(vec2 pos) {
-        return mix (
-            mix(vertex.Amount[0], vertex.Amount[1], pos[0]),
-            mix(vertex.Amount[2], vertex.Amount[3], pos[0]),
-            pos[1]
-        );
-    }
-
-    out vec4 Color;
-    
-    void main()
-    {
-        vec2 pos;
-        if (vertex.right) {
-            pos = p0 * vertex.position.x + p2 * vertex.position.y + p1 * vertex.position.z;
-        }else {
-            pos = p0 * vertex.position.x + p2 * vertex.position.y + p3 * vertex.position.z;
-        }
-        float sample = sampleQuad(pos);
-        Color = vec4(sample, pos[0], pos[1], 1);
-    }\
-    ")?;
-        
-    //CREATE PROGRAM
-    let mut program = Program::from_shaders(vec![
-        Rc::new(vert_shader),
-        Rc::new(geom_shader),
-        Rc::new(frag_shader),
-    ])?;
-    program.set_used();
-
-    // CREATE VBO
-    let mut vbo: Vbo<Vertex, DynamicBuffer> = Vbo::new(
-        &[
-            Vertex{ x: -0.9, y: -0.9, amount: 0.0 },
-            Vertex{ x: -0.9, y:  0.9, amount: 1.0 },
-            Vertex{ x:  0.9, y:  0.9, amount: 0.0 },
-            Vertex{ x:  0.9, y: -0.9, amount: 1.0 },
-        ]
+    let mut gfx = Graphics::new()?;
+    let mut world = World::new(
+        1., 1., 10, 10
     );
-
-    //CREATE VAO
-    let mut vao = Vao::new(Format::LinesAdj);
-    vao.bind_vbo(
-        0,
-        &mut vbo
-    );
-
-     // CREATE EBO
-    let mut ebo: Ebo<u32, StaticBuffer> = Ebo::new(
-        &[
-            0, 1, 2, 3
-        ]
-    );
-
-    ebo.bind();
     
     unsafe {
         gl::Viewport(0, 0, 900, 700);
@@ -194,12 +46,58 @@ fn main() -> Result<()> {
     }
     
     let mut event_pump = sdl.event_pump().unwrap();
+
+    let mut margin = 0.5;
+
+    let mut mouse = Vector2::new(0., 0.);
     
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
+                },
+                Event::KeyDown { keycode: Some(Keycode::Plus), .. } => {
+                    margin += 0.02;
+                    gfx.program.set_uniform("margin", margin);
+                },
+                Event::KeyDown { keycode: Some(Keycode::Minus), .. } => {
+                    margin -= 0.02;
+                    gfx.program.set_uniform("margin", margin);
+                },
+                Event::KeyDown { keycode: Some(Keycode::Z), .. } => {
+                    let mut vbo = world.vbo.write();
+                    let map = &mut *vbo;
+                    for vertex in &mut *map {
+                        vertex.amount = 0.;
+                    }
+                },
+                Event::MouseMotion{
+                    x, y, ..
+                } => {
+                    mouse = Vector2::new(x as f32, y as f32);
+                },
+                Event::MouseWheel{
+                    direction, y, ..
+                } => {
+                    match direction {
+                        MouseWheelDirection::Normal => {
+                            let mut vbo = world.vbo.write();
+                            let map = &mut *vbo;
+
+                            let win_size = &window.size();
+
+                            let win_size_vec = Vector2::new(win_size.0 as f32, win_size.1 as f32);
+                            let world_size = Vector2::new(11., 11.);
+                            let ratio = win_size_vec.component_div(&world_size);
+                            let pos = mouse.component_div(&ratio);
+                            let p0 = (pos.index(0), pos.index(1));
+                            let index: usize = (pos.index(0).floor() + pos.index(1).floor() * 11.) as usize;
+                            map[index].amount += 0.1 * (y as f32);
+
+                        },
+                        _ => {}
+                    }
                 },
                 _ => {}
             }
@@ -210,7 +108,7 @@ fn main() -> Result<()> {
         }
 
         // DRAW VAO
-        vao.draw_elements(4, Primitive::UInt, 0);
+        world.draw();
 
         window.gl_swap_window();
         std::thread::sleep(Duration::from_millis(30))

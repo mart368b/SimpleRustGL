@@ -1,49 +1,49 @@
 use gl::types::*;
 use std::marker::PhantomData;
-use super::{Primitive, Format, BufferType, ReadBufferMap, WriteBufferMap, DynamicBuffer};
+use super::{Primitive, Format, BufferType, BufferData, BufferAcces, ReadBufferMap, WriteBufferMap, DynamicBuffer};
 use crate::gfx::get_value;
 
 use std::borrow::{BorrowMut, Borrow};
 
-pub trait VboData {
-    fn prototype() -> Vec<(Primitive, GLuint)>;
-}
-
-pub struct Vbo<T, Ty> 
+pub struct Buffer<T, Kind, Acces>
 where
-    T: Sized + VboData,
-    Ty: BufferType
+    T: Sized + BufferData,
+    Kind: BufferType,
+    Acces: BufferAcces
 {
     id: GLuint,
     len: usize,
     data: PhantomData<T>,
-    ty: PhantomData<Ty>
+    kind: PhantomData<Kind>,
+    acces: PhantomData<Acces>,
 }
 
-impl<T, Ty> Vbo<T, Ty> 
+impl<T, Kind, Acces> Buffer<T, Kind, Acces>
 where
-    T: Sized + VboData,
-    Ty: BufferType
+    T: Sized + BufferData,
+    Kind: BufferType,
+    Acces: BufferAcces
 {
-    pub fn new(data: &[T]) -> Vbo<T, Ty> {
+    pub fn new(data: &[T]) -> Buffer<T, Kind, Acces> {
         let mut id = get_value(0, |id|unsafe {
             gl::GenBuffers(1, id);
         });
 
-        let mut vbo = Vbo {
+        let mut vbo = Buffer {
             id,
             len: data.len(),
             data: PhantomData,
-            ty: PhantomData
+            kind: PhantomData,
+            acces: PhantomData,
         };
 
         vbo.bind();
         unsafe {
             gl::BufferData(
-                gl::ARRAY_BUFFER,
+                Kind::value(),
                 (data.len() * std::mem::size_of::<T>()) as gl::types::GLsizeiptr,
                 data as *const [T] as *const GLvoid,
-                Ty::value(),
+                Acces::value(),
             );
         }
 
@@ -56,7 +56,7 @@ where
 
     pub fn bind(&mut self) {
         unsafe {
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.id);
+            gl::BindBuffer(Kind::value(), self.id);
         }
     }
 
@@ -65,7 +65,7 @@ where
         self.len = data.len();
         unsafe {
             gl::BufferSubData(
-                gl::ARRAY_BUFFER,
+                Kind::value(),
                 (offset as usize * std::mem::size_of::<T>()) as isize,
                 (data.len() * std::mem::size_of::<T>()) as gl::types::GLsizeiptr,
                 data as *const [T] as *const GLvoid
@@ -76,7 +76,7 @@ where
     pub fn read<'a>(&self) -> ReadBufferMap<'a, T>{
         let ptr = unsafe {
             gl::MapBuffer(
-                gl::ARRAY_BUFFER,
+                Kind::value(),
                 gl::READ_ONLY
             )
         } as *const T;
@@ -92,14 +92,15 @@ where
     
 }
 
-impl<T> Vbo<T, DynamicBuffer> 
+impl<T, Kind> Buffer<T, Kind, DynamicBuffer> 
 where
-    T: Sized + VboData,
+    T: Sized + BufferData,
+    Kind: BufferType,
 {
     pub fn write<'a>(&self) -> WriteBufferMap<'a, T>{
         let ptr = unsafe {
             gl::MapBuffer(
-                gl::ARRAY_BUFFER,
+                Kind::value(),
                 gl::READ_WRITE
             )
         } as *const T;
@@ -113,10 +114,11 @@ where
     }
 }
 
-impl<T, Ty> Drop for Vbo<T, Ty> 
+impl<T, Kind, Acces> Drop for Buffer<T, Kind, Acces> 
 where
-    T: Sized + VboData,
-    Ty: BufferType
+    T: Sized + BufferData,
+    Kind: BufferType,
+    Acces: BufferAcces
 {
     fn drop(&mut self) {
         unsafe {

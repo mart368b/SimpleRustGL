@@ -1,11 +1,11 @@
 use gl::types::*;
 use std::marker::PhantomData;
-use super::{Primitive, Vbo, VboData, BufferType, Format};
+use super::{Primitive, Buffer, BufferData, BufferAcces, BufferType, Format};
 use crate::gfx::get_value;
 
 pub struct Vao {
     id: GLuint,
-    format: Format
+    format: Format,
 }
 
 impl Vao {
@@ -27,14 +27,15 @@ impl Vao {
         }
     }
 
-    pub fn bind_vbo<T, Ty>(
+    pub fn bind_vbo<T, Kind, Acces>(
         &mut self,
         location: GLuint,
-        vbo: &mut Vbo<T, Ty>
+        vbo: &mut Buffer<T, Kind, Acces>
     ) -> GLuint
     where
-        T: VboData + Sized,
-        Ty: BufferType
+        T: Sized + BufferData,
+        Kind: BufferType,
+        Acces: BufferAcces
     {
         vbo.bind();
         let prototype = T::prototype();
@@ -100,7 +101,7 @@ impl Vao {
         }
     }
 
-    pub fn draw_arrays(&mut self, i0:GLuint, len: GLuint) {
+    pub fn draw_arrays(&mut self, i0: GLuint, len: GLuint) {
         unsafe {
             gl::DrawArrays(
                 self.format.value(),

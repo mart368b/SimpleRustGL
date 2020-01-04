@@ -15,7 +15,7 @@ impl WorldVertex {
     }
 }
 
-impl VboData for WorldVertex {
+impl BufferData for WorldVertex {
     fn prototype() -> Vec<(Primitive, u32)> {
         vec![
             (Primitive::Float, 2),
@@ -25,9 +25,9 @@ impl VboData for WorldVertex {
 }
 
 pub struct World {
-    pub vbo: Vbo<WorldVertex, DynamicBuffer>,
+    pub vbo: VboBuffer<WorldVertex, DynamicBuffer>,
     pub vao: Vao,
-    pub ebo: Ebo<u32, StaticBuffer>,
+    pub ebo: EboBuffer<u32, StaticBuffer>,
     vert_count: u32,
 }
 
@@ -65,8 +65,13 @@ impl World {
         }
 
         // CREATE VBO
-        let mut vbo = Vbo::new(
-            &verticies
+        let mut vbo = VboBuffer::new(
+            &[
+                WorldVertex{x: 0.0, y: 0.0, amount: 0.0},
+                WorldVertex{x: 1.0, y: 0.0, amount: 1.0},
+                WorldVertex{x: 1.0, y: 1.0, amount: 0.0},
+                WorldVertex{x: 0.0, y: 1.0, amount: 0.0},
+            ]
         );
 
         //CREATE VAO
@@ -77,8 +82,8 @@ impl World {
         );
 
         // CREATE EBO
-        let mut ebo = Ebo::new(
-            &index
+        let mut ebo = EboBuffer::new(
+            &[0, 1, 2, 3]
         );
 
         World {

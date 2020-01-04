@@ -1,17 +1,21 @@
-mod vbo;
 mod vao;
-mod ebo;
-mod buffertype;
 mod indexprimitive;
 mod primitive;
 mod format;
-mod buffermap;
 
+mod buffer;
+mod buffertype;
+mod buffermap;
+mod bufferdata;
+
+pub use buffer::*;
+pub use bufferdata::*;
 pub use buffermap::*;
 pub use format::Format;
 pub use primitive::Primitive;
 pub use indexprimitive::IndexPrimitive;
 pub use buffertype::*;
-pub use ebo::Ebo;
 pub use vao::Vao;
-pub use vbo::{Vbo, VboData};
+
+pub type VboBuffer<T, Acces: BufferAcces> = Buffer<T, ArrayBuffer, Acces>;
+pub type EboBuffer<T: IndexPrimitive, Acces: BufferAcces> = Buffer<T, ElementArrayBuffer, Acces>;

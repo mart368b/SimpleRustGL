@@ -39,3 +39,9 @@ impl Primitive {
         size as GLuint
     }
 }
+
+pub trait IndexPrimitive {}
+
+impl IndexPrimitive for u8 {}
+impl IndexPrimitive for u16 {}
+impl IndexPrimitive for u32 {}

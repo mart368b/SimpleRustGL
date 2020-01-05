@@ -1,12 +1,10 @@
 use gl::types::*;
-use std::any::Any;
 use super::*;
 use anyhow::{Result, anyhow};
 use crate::gfx::error::get_program_error;
 use std::rc::Rc;
 use crate::gfx::get_value;
 use std::collections::HashMap;
-use std::cell::RefCell;
 use std::borrow::Borrow;
 
 pub trait ProgramAttachment {
@@ -61,7 +59,7 @@ impl Program {
     pub fn link(&mut self) -> Result<()> {
         unsafe { gl::LinkProgram(self.id); }
 
-        let mut success = get_value(1, |success|unsafe {
+        let success = get_value(1, |success|unsafe {
             gl::GetProgramiv(self.id, gl::LINK_STATUS, success);
         });
 
@@ -137,7 +135,6 @@ impl Program {
         use std::ffi::CString;
         let c_name = CString::new(name).unwrap();
         let loc = unsafe { gl::GetUniformLocation(self.id, c_name.as_ptr()) };
-        println!("{}", loc);
         if loc != -1 {
             self.uniform_locations.insert(name.to_owned(), loc);
             Some(loc)

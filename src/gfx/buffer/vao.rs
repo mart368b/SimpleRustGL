@@ -1,5 +1,4 @@
 use gl::types::*;
-use std::marker::PhantomData;
 use super::{Primitive, Buffer, BufferData, BufferAcces, BufferType, Format};
 use crate::gfx::get_value;
 
@@ -10,8 +9,7 @@ pub struct Vao {
 
 impl Vao {
     pub fn new(format: Format) -> Vao {
-        
-        let mut id = get_value(0, |id| unsafe {
+        let id = get_value(0, |id| unsafe {
             gl::GenVertexArrays(1, id);
         });
         
@@ -69,12 +67,6 @@ impl Vao {
                     offset as *const GLvoid,
                 );
             }
-            println!("{}, {}, {}, {}", 
-                (id as GLuint) + location,
-                *count as GLint,
-                prototype_len as gl::types::GLint,
-                offset,
-            );
             offset += ty.size() * count;
         }
     }

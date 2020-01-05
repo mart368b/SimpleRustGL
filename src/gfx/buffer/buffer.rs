@@ -1,9 +1,7 @@
 use gl::types::*;
 use std::marker::PhantomData;
-use super::{Primitive, Format, BufferType, BufferData, BufferAcces, ReadBufferMap, WriteBufferMap, DynamicBuffer};
+use super::{BufferType, BufferData, BufferAcces, ReadBufferMap, WriteBufferMap, DynamicBuffer};
 use crate::gfx::get_value;
-
-use std::borrow::{BorrowMut, Borrow};
 
 pub struct Buffer<T, Kind, Acces>
 where
@@ -25,7 +23,7 @@ where
     Acces: BufferAcces
 {
     pub fn new(data: &[T]) -> Buffer<T, Kind, Acces> {
-        let mut id = get_value(0, |id|unsafe {
+        let id = get_value(0, |id|unsafe {
             gl::GenBuffers(1, id);
         });
 

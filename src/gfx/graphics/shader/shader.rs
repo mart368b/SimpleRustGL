@@ -74,7 +74,7 @@ where
             gl::CompileShader(self.id);
         }
 
-        let mut success: GLint = get_value(1, |success|unsafe {
+        let success: GLint = get_value(1, |success|unsafe {
             gl::GetShaderiv(self.id, gl::COMPILE_STATUS, success);
         });
 

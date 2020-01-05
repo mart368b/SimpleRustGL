@@ -2,8 +2,7 @@ use anyhow::Result;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::video::GLProfile;
-use sdl2::mouse::MouseWheelDirection;
+use sdl2::mouse::MouseButton;
 
 use std::time::Duration;
 
@@ -14,6 +13,9 @@ use application::{Graphics, World};
 
 type Vector2 = nalgebra::Vector2<f32>;
 type Vector3 = nalgebra::Vector3<f32>;
+
+const TILE_X_COUNT: usize = 50;
+const TILE_Y_COUNT: usize = 50;
 
 fn main() -> Result<()> {
     let sdl = sdl2::init().unwrap();
@@ -37,7 +39,7 @@ fn main() -> Result<()> {
     // CREATE SHADER
     let mut gfx = Graphics::new()?;
     let mut world = World::new(
-        1., 1., 10, 10
+        1., 1., TILE_X_COUNT, TILE_Y_COUNT
     );
     
     unsafe {
@@ -49,7 +51,11 @@ fn main() -> Result<()> {
 
     let mut margin = 0.5;
 
+    let mut amount = 0.1;
+
     let mut mouse = Vector2::new(0., 0.);
+    let mut mouse_down = false;
+    let mut direction = true;
     
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -57,13 +63,19 @@ fn main() -> Result<()> {
                 Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
                 },
-                Event::KeyDown { keycode: Some(Keycode::Plus), .. } => {
+                Event::KeyDown { keycode: Some(Keycode::R), .. } => {
                     margin += 0.02;
                     gfx.program.set_uniform("margin", margin);
                 },
-                Event::KeyDown { keycode: Some(Keycode::Minus), .. } => {
+                Event::KeyDown { keycode: Some(Keycode::D), .. } => {
                     margin -= 0.02;
                     gfx.program.set_uniform("margin", margin);
+                },
+                Event::KeyDown { keycode: Some(Keycode::W), .. } => {
+                    amount = clamp(0., 1., amount + 0.05);
+                },
+                Event::KeyDown { keycode: Some(Keycode::S), .. } => {
+                    amount = clamp(0., 1., amount - 0.05);
                 },
                 Event::KeyDown { keycode: Some(Keycode::Z), .. } => {
                     let mut vbo = world.vbo.write();
@@ -75,26 +87,47 @@ fn main() -> Result<()> {
                 Event::MouseMotion{
                     x, y, ..
                 } => {
+                    if mouse_down {
+                        let win_size = &window.size();
+                        let win_size_vec = Vector2::new(win_size.0 as f32, win_size.1 as f32);
+                        let world_size = Vector2::new(TILE_X_COUNT as f32, TILE_Y_COUNT as f32);
+                        let ratio = win_size_vec.component_div(&world_size);
+                        let pos = mouse.component_div(&ratio);
+
+                        let change = if direction {
+                            amount
+                        }else {
+                            -amount
+                        };
+
+                        world.add(pos, change);
+                    }
                     mouse = Vector2::new(x as f32, y as f32);
                 },
-                Event::MouseWheel{
-                    direction, y, ..
+                Event::MouseButtonDown{
+                    mouse_btn, ..
                 } => {
-                    match direction {
-                        MouseWheelDirection::Normal => {
-                            let mut vbo = world.vbo.write();
-                            let map = &mut *vbo;
-
-                            let win_size = &window.size();
-
-                            let win_size_vec = Vector2::new(win_size.0 as f32, win_size.1 as f32);
-                            let world_size = Vector2::new(11., 11.);
-                            let ratio = win_size_vec.component_div(&world_size);
-                            let pos = mouse.component_div(&ratio);
-                            let p0 = (pos.index(0), pos.index(1));
-                            let index: usize = (pos.index(0).floor() + pos.index(1).floor() * 11.) as usize;
-                            map[index].amount += 0.1 * (y as f32);
-
+                    match mouse_btn {
+                        MouseButton::Left => {
+                            direction = true;
+                            mouse_down = true;
+                        },
+                        MouseButton::Right => {
+                            direction = false;
+                            mouse_down = true;
+                        },
+                        _ => {}
+                    }
+                },
+                Event::MouseButtonUp{
+                    mouse_btn, ..
+                } => {
+                    match mouse_btn {
+                        MouseButton::Left => {
+                            mouse_down = false;
+                        },
+                        MouseButton::Right => {
+                            mouse_down = false;
                         },
                         _ => {}
                     }
@@ -114,4 +147,14 @@ fn main() -> Result<()> {
         std::thread::sleep(Duration::from_millis(30))
     }
     Ok(())
+}
+
+pub fn clamp<T: PartialOrd>(v0: T, v1: T, v: T) -> T {
+    if v > v1 {
+        v1
+    }else if v < v0 {
+        v0
+    }else {
+        v
+    }
 }

@@ -45,34 +45,37 @@ pub fn create_cube_geometry_shader() -> Result<GeometryShader> {
             vertex_in[3].Amount
         );
 
-        /*
-        bool active[4] = bool;
+        int active = 0;
         for (int i = 0; i < vertex_in.length(); i++) {
-            active[i] = vertex_in[i].Amount > 0;
+            if (vertex_in[i].Amount > 0) {
+                active += 1;
+            }
         }
-        */
         
-        gl_Position = gl_in[0].gl_Position;
-        vertex_out.position = vec2(0, 0);
-        EmitVertex();
-        gl_Position = gl_in[1].gl_Position;
-        vertex_out.position = vec2(1, 0);
-        EmitVertex();
-        gl_Position = gl_in[2].gl_Position;
-        vertex_out.position = vec2(1, 1);
-        vertex_out.right = true;
-        EmitVertex();
+        if (active > 0) {
+            gl_Position = gl_in[0].gl_Position;
+            vertex_out.position = vec2(0, 0);
+            EmitVertex();
+            gl_Position = gl_in[1].gl_Position;
+            vertex_out.position = vec2(1, 0);
+            EmitVertex();
+            gl_Position = gl_in[2].gl_Position;
+            vertex_out.position = vec2(1, 1);
+            vertex_out.right = true;
+            EmitVertex();
+            
+            gl_Position = gl_in[0].gl_Position;
+            vertex_out.position = vec2(0, 0);
+            EmitVertex();
+            gl_Position = gl_in[2].gl_Position;
+            vertex_out.position = vec2(1, 1);
+            EmitVertex();
+            gl_Position = gl_in[3].gl_Position;
+            vertex_out.right = false;
+            vertex_out.position = vec2(0, 1);
+            EmitVertex();
+        }
         
-        gl_Position = gl_in[0].gl_Position;
-        vertex_out.position = vec2(0, 0);
-        EmitVertex();
-        gl_Position = gl_in[2].gl_Position;
-        vertex_out.position = vec2(1, 1);
-        EmitVertex();
-        gl_Position = gl_in[3].gl_Position;
-        vertex_out.right = false;
-        vertex_out.position = vec2(0, 1);
-        EmitVertex();
 
         EndPrimitive();
     }  \
@@ -106,9 +109,9 @@ pub fn create_cube_frag_shader() -> Result<FragmentShader> {
         vec2 pos;
         float sample = sampleQuad(vertex.position);
         if (sample > margin) {
-            Color = vec4(0, 0, sample, 1);
+            Color = vec4(sample, sample, sample, 1);
         }else {
-            Color = vec4(0, 0, 0, 1);
+            Color = vec4(0, 0, 0, 0);
         }
         
     }\

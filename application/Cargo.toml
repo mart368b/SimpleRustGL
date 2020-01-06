@@ -1,0 +1,16 @@
+[package]
+name = "application"
+version = "0.1.0"
+authors = ["Martin Pinholt <mapi@itu.dk>"]
+edition = "2018"
+
+[dependencies]
+sdl2 = {version="0.32", features=["bundled"]}
+nalgebra = "0.19"
+anyhow = "1.0.26"
+gl = "0.14.0"
+wrapper = {path = "../wrapper"}
+
+[[bin]]
+name = "app"
+path = "src/main.rs"

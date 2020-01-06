@@ -1,9 +1,9 @@
 use gl::types::*;
 use super::*;
 use anyhow::{Result, anyhow};
-use crate::gfx::error::get_program_error;
+use crate::error::get_program_error;
 use std::rc::Rc;
-use crate::gfx::get_value;
+use crate::get_value;
 use std::collections::HashMap;
 use std::borrow::Borrow;
 

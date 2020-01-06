@@ -1,7 +1,7 @@
 use gl::types::*;
 use std::marker::PhantomData;
 use super::{BufferType, BufferData, BufferAcces, ReadBufferMap, WriteBufferMap, DynamicBuffer};
-use crate::gfx::get_value;
+use crate::get_value;
 
 pub struct Buffer<T, Kind, Acces>
 where

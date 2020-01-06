@@ -6,8 +6,6 @@ use sdl2::mouse::MouseButton;
 
 use std::time::Duration;
 
-pub mod gfx;
-
 mod application;
 use application::{Graphics, World};
 

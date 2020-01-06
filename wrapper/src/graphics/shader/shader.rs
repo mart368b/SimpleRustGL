@@ -1,7 +1,7 @@
 pub use gl::types::*;
 pub use anyhow::{Result, anyhow};
-pub use crate::gfx::error::get_shader_error;
-use crate::gfx::get_value;
+pub use crate::error::get_shader_error;
+use crate::get_value;
 use std::ffi::CString;
 
 pub trait ShaderExt {
@@ -50,7 +50,7 @@ where
         let sources_raw: Vec<CString> = sources
             .iter()
             .map(|s| {
-                CString::new(s.as_ref()).unwrap()
+                CString::new(s.as_ref().trim()).unwrap()
             })
             .collect();
 

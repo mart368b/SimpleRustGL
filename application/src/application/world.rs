@@ -1,4 +1,4 @@
-use crate::gfx::buffer::*;
+use wrapper::buffer::*;
 use crate::{Vector2, clamp};
 
 use anyhow::Result;

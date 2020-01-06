@@ -24,7 +24,7 @@ impl QuardCurve{
 
     pub fn draw(&mut self, csv: &mut Canvas) -> Result<(), String>{
         if self.has_changed{
-            self.update_cach();
+            self.update_cache();
             self.has_changed = false;
         }
 
@@ -32,7 +32,7 @@ impl QuardCurve{
         Ok(())
     }
 
-    fn update_cach(&mut self){
+    fn update_cache(&mut self){
         self.cach.clear();
         let length = self.len();
         let step = RESOLUTION / (length - RESOLUTION);

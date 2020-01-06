@@ -1,9 +1,9 @@
 use anyhow::Result;
 
 use std::rc::Rc;
+use std::include_str;
 
-use super::shaders::*;
-pub use crate::gfx::graphics::*;
+pub use wrapper::graphics::*;
 
 pub struct Graphics {
     pub program: Program
@@ -11,9 +11,16 @@ pub struct Graphics {
 
 impl Graphics {
     pub fn new() -> Result<Graphics> {
-        let vert_shader = create_cube_vertex_shader()?;
-        let geom_shader = create_cube_geometry_shader()?;
-        let frag_shader = create_cube_frag_shader()?;
+
+        let vert_shader = VertexShader::from_source(
+            include_str!("../../resources/shaders/cube/cube.vert")
+        )?;
+        let geom_shader = GeometryShader::from_source(
+            include_str!("../../resources/shaders/cube/cube.geom")
+        )?;
+        let frag_shader = FragmentShader::from_source(
+            include_str!("../../resources/shaders/cube/cube.frag")
+        )?;
 
         let mut program = Program::from_shaders(vec![
             Rc::new(vert_shader),

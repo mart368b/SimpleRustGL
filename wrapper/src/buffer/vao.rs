@@ -1,6 +1,6 @@
 use gl::types::*;
 use super::{Primitive, Buffer, BufferData, BufferAcces, BufferType, Format};
-use crate::gfx::get_value;
+use crate::get_value;
 
 use anyhow::{Result, bail};
 

@@ -8,7 +8,8 @@ pub enum Primitive {
     Int,
     UInt,
     Float,
-    Double
+    Double,
+    Nothing
 }
 
 impl Primitive {
@@ -21,7 +22,8 @@ impl Primitive {
             Primitive::Int => gl::INT,
             Primitive::UInt => gl::UNSIGNED_INT,
             Primitive::Float => gl::FLOAT,
-            Primitive::Double => gl::DOUBLE
+            Primitive::Double => gl::DOUBLE,
+            Primitive::Nothing => 0
         }
     }
 
@@ -35,6 +37,7 @@ impl Primitive {
             Primitive::UInt => std::mem::size_of::<u32>(),
             Primitive::Float => std::mem::size_of::<f32>(),
             Primitive::Double => std::mem::size_of::<f64>(),
+            Primitive::Nothing => 1
         };
         size as GLuint
     }

@@ -40,7 +40,7 @@ fn main() -> Result<()> {
     let mut gfx = Graphics::new()?;
     let mut world = World::new(
         1., 1., TILE_X_COUNT, TILE_Y_COUNT
-    );
+    )?;
     
     unsafe {
         gl::Viewport(0, 0, 900, 700);
@@ -78,10 +78,10 @@ fn main() -> Result<()> {
                     amount = clamp(0., 1., amount - 0.05);
                 },
                 Event::KeyDown { keycode: Some(Keycode::Z), .. } => {
-                    let mut vbo = world.vbo.write();
+                    let mut vbo = world.avbo.write();
                     let map = &mut *vbo;
                     for vertex in &mut *map {
-                        vertex.amount = 0.;
+                        *vertex = 0.;
                     }
                 },
                 Event::MouseMotion{

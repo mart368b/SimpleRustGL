@@ -16,4 +16,4 @@ pub use buffertype::*;
 pub use vao::Vao;
 
 pub type VboBuffer<T, Acces> = Buffer<T, ArrayBuffer, Acces>;
-pub type EboBuffer<T: IndexPrimitive, Acces> = Buffer<T, ElementArrayBuffer, Acces>;
+pub type EboBuffer<T, Acces> = Buffer<T, ElementArrayBuffer, Acces>;

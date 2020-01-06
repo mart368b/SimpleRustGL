@@ -27,7 +27,7 @@ where
             gl::GenBuffers(1, id);
         });
 
-        let mut vbo = Buffer {
+        let vbo = Buffer {
             id,
             len: data.len(),
             data: PhantomData,
@@ -52,7 +52,7 @@ where
         self.id
     }
 
-    pub fn bind(&mut self) {
+    pub fn bind(&self) {
         unsafe {
             gl::BindBuffer(Kind::value(), self.id);
         }

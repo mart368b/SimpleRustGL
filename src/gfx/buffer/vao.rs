@@ -2,24 +2,43 @@ use gl::types::*;
 use super::{Primitive, Buffer, BufferData, BufferAcces, BufferType, Format};
 use crate::gfx::get_value;
 
+use anyhow::{Result, bail};
+
+use std::collections::HashMap;
+
+type AttributePoint = (GLuint, GLint, GLenum, GLboolean, GLsizei, GLuint);
+
 pub struct Vao {
     id: GLuint,
     format: Format,
+    bindings: HashMap<GLuint, Vec<AttributePoint>>,
+    location_count: GLuint
 }
 
 impl Vao {
-    pub fn new(format: Format) -> Vao {
+    pub fn new(format: Format, locations: GLuint) -> Vao {
         let id = get_value(0, |id| unsafe {
             gl::GenVertexArrays(1, id);
         });
         
-        Vao { 
+        let vao = Vao { 
             id,
-            format: format
+            format: format,
+            bindings: HashMap::new(),
+            location_count: locations
+        };
+
+        vao.bind();
+        for i in 0..locations {
+            unsafe {
+                gl::EnableVertexAttribArray(i as GLuint);
+            }
         }
+
+        vao
     }
 
-    pub fn bind(&mut self) {
+    pub fn bind(&self) {
         unsafe {
             gl::BindVertexArray(self.id);
         }
@@ -29,68 +48,110 @@ impl Vao {
         &mut self,
         location: GLuint,
         vbo: &mut Buffer<T, Kind, Acces>
-    ) -> GLuint
+    ) -> Result<Option<GLuint>>
     where
         T: Sized + BufferData,
         Kind: BufferType,
         Acces: BufferAcces
     {
-        vbo.bind();
-        let prototype = T::prototype();
-        let prototype_len = prototype.iter().fold(0, |acc, (ty, count)| acc + ty.size() * count);
-        assert_eq!(std::mem::size_of::<T>() as GLuint, prototype_len);
-        self.bind_prototype(
-            location,
-            prototype
-        );
-        location + prototype_len
+        let mut bound = false;
+
+        // Check if the buffer is already bound
+        if let Some(bindings) = self.bindings.get(&vbo.id()) {
+            bound = bindings.len() == 0 || bindings[0].0 != location;
+            if bound {
+                // If it is apply the binding
+                self.rebind_vbo(vbo, bindings);
+            }
+        }
+        
+        // If it is not create a new binding and apply it
+        if !bound {
+            // Generate binding
+            let prototype = T::prototype();
+            let bindings = self.generate_binding(
+                std::mem::size_of::<T>() as GLuint,
+                location,
+                prototype
+            )?;
+            
+            // Apply binding
+            self.rebind_vbo(vbo, &bindings);
+            let bindings_len = bindings.len();
+            self.bindings.insert(vbo.id(), bindings);
+
+            // Return the index of the next location
+            Ok(Some(location + bindings_len as GLuint))
+        }else {
+            Ok(None)
+        }
     }
 
-    pub fn bind_prototype(
-        &mut self,
-        location: GLuint,
-        prototype: Vec<(Primitive, GLuint)>
-    ) {
-        let prototype_len = prototype.iter().fold(0, |acc, (ty, count)| acc + ty.size() * count);
-
+    fn rebind_vbo<T, Kind, Acces>(
+        &self,
+        vbo: &mut Buffer<T, Kind, Acces>,
+        bindings: &Vec<AttributePoint>
+    ) 
+    where
+        T: Sized + BufferData,
+        Kind: BufferType,
+        Acces: BufferAcces
+    {
+        // set vao and vbo as active
         self.bind();
-        let mut offset: GLuint = 0;
-        for (id, (ty, count)) in prototype.iter().enumerate() {
+        vbo.bind();
+        for (location, size, ty, norm, stride, offset) in bindings {
             unsafe {
-                gl::EnableVertexAttribArray(id as GLuint);
                 gl::VertexAttribPointer(
-                    (id as GLuint) + location,
-                    *count as GLint,
-                    ty.value(),
-                    gl::FALSE,
-                    prototype_len as gl::types::GLint,
-                    offset as *const GLvoid,
+                    *location,
+                    *size,
+                    *ty,
+                    *norm,
+                    *stride,
+                    *offset as *const GLvoid,
                 );
             }
-            offset += ty.size() * count;
         }
     }
 
-    pub fn bind_attribute(
+    pub fn generate_binding(
         &mut self,
-        id: GLuint,
-        pre_offset: GLuint,
-        primitive: Primitive,
-        count: GLuint,
-        post_offset: GLuint
-    ) {
-        self.bind();
-        unsafe {
-            gl::EnableVertexAttribArray(id); // this is "layout (location = 0)" in vertex shader
-            gl::VertexAttribPointer(
-                id,         // index of the generic vertex attribute ("layout (location = 0)")
-                count as GLint,         // the number of components per generic vertex attribute
-                gl::FLOAT, // data type
-                gl::FALSE, // normalized (int-to-float conversion)
-                (pre_offset + count * primitive.size() + post_offset) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-                pre_offset as *const GLvoid,                                     // offset of the first component
-            );
+        object_size: GLuint,
+        location: GLuint,
+        prototype: Vec<(Primitive, GLuint)>
+    ) -> Result<Vec<AttributePoint>> {
+        // Check prototype size
+        let prototype_len = prototype.iter().fold(0, |acc, (ty, count)| acc + ty.size() * count);        
+
+        if object_size != prototype_len {
+            bail!("Invalid prototype size of {} on object of size {}", prototype_len, object_size);
         }
+
+        // Keep track of offset between parameters
+        let mut offset: GLuint = 0;
+        let mut bindings = Vec::new();
+        for (id, (ty, count)) in prototype.iter().enumerate() {
+            if (id as GLuint) + location > self.location_count {
+                bail!("Ran out of shader variable location had {} but was making {}", self.location_count, (id as GLuint) + location);
+            }
+
+            match ty {
+                Primitive::Nothing => (),
+                _ => {
+                    bindings.push((
+                        (id as GLuint) + location,
+                        *count as GLint,
+                        ty.value(),
+                        gl::FALSE,
+                        prototype_len as gl::types::GLint,
+                        offset
+                    ));
+                }
+            };
+
+            offset += ty.size() * count;
+        }
+        Ok(bindings)
     }
 
     pub fn draw_arrays(&mut self, i0: GLuint, len: GLuint) {

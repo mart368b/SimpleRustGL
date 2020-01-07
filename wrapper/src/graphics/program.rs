@@ -74,54 +74,13 @@ impl Program {
         }
     }
 
-    pub fn set_uniform<'a, K: 'a, Q>(&mut self, name: &str, val: K)
+    pub fn set_uniform<K>(&mut self, name: &str, val: K)
     where
-        K: Borrow<Q>,
-        Q: ?Sized,
-        for<'b>
-        &'b Q: Into<Uniform<'b>>
+        K: Uniform<K>
     {
         if let Some(loc) = self.get_uniform_loc(name) {
-            let t = val.borrow();
-            let uniform = t.into();
             unsafe {
-                match uniform {
-                    Uniform::Int(i) => gl::Uniform1i(loc, i),
-                    Uniform::Int2(i, i2) => gl::Uniform2i(loc, i, i2),
-                    Uniform::Int3(i, i2, i3) => gl::Uniform3i(loc, i, i2, i3),
-                    Uniform::Int4(i, i2, i3, i4) => gl::Uniform4i(loc, i, i2, i3, i4),
-                    Uniform::UInt(u) => gl::Uniform1ui(loc, u),
-                    Uniform::UInt2(u, u2) => gl::Uniform2ui(loc, u, u2),
-                    Uniform::UInt3(u, u2, u3) => gl::Uniform3ui(loc, u, u2, u3),
-                    Uniform::UInt4(u, u2, u3, u4) => gl::Uniform4ui(loc, u, u2, u3, u4),
-                    Uniform::Float(f) => gl::Uniform1f(loc, f),
-                    Uniform::Float2(f, f2) => gl::Uniform2f(loc, f, f2),
-                    Uniform::Float3(f, f2, f3) => gl::Uniform3f(loc, f, f2, f3),
-                    Uniform::Float4(f, f2, f3, f4) => gl::Uniform4f(loc, f, f2, f3, f4),
-                    
-                    Uniform::IntVec(v) => gl::Uniform1iv(loc, v.len() as GLsizei, v.as_ptr() as *const GLint),
-                    Uniform::IntVec2(v) => gl::Uniform2iv(loc, v.len() as GLsizei, v.as_ptr() as *const GLint),
-                    Uniform::IntVec3(v) => gl::Uniform3iv(loc, v.len() as GLsizei, v.as_ptr() as *const GLint),
-                    Uniform::IntVec4(v) => gl::Uniform4iv(loc, v.len() as GLsizei, v.as_ptr() as *const GLint),
-                    Uniform::UIntVec(v) => gl::Uniform1uiv(loc, v.len() as GLsizei, v.as_ptr() as *const GLuint),
-                    Uniform::UIntVec2(v) => gl::Uniform2uiv(loc, v.len() as GLsizei, v.as_ptr() as *const GLuint),
-                    Uniform::UIntVec3(v) => gl::Uniform3uiv(loc, v.len() as GLsizei, v.as_ptr() as *const GLuint),
-                    Uniform::UIntVec4(v) => gl::Uniform4uiv(loc, v.len() as GLsizei, v.as_ptr() as *const GLuint),
-                    Uniform::FloatVec(v) => gl::Uniform1fv(loc, v.len() as GLsizei, v.as_ptr() as *const GLfloat),
-                    Uniform::FloatVec2(v) => gl::Uniform2fv(loc, v.len() as GLsizei, v.as_ptr() as *const GLfloat),
-                    Uniform::FloatVec3(v) => gl::Uniform3fv(loc, v.len() as GLsizei, v.as_ptr() as *const GLfloat),
-                    Uniform::FloatVec4(v) => gl::Uniform4fv(loc, v.len() as GLsizei, v.as_ptr() as *const GLfloat),
-
-                    Uniform::Matrix2(m) => gl::UniformMatrix2fv(loc, m.len() as GLsizei, false as GLboolean, m.as_ptr() as *const GLfloat),
-                    Uniform::Matrix3(m) => gl::UniformMatrix3fv(loc, m.len() as GLsizei, false as GLboolean, m.as_ptr() as *const GLfloat),
-                    Uniform::Matrix4(m) => gl::UniformMatrix4fv(loc, m.len() as GLsizei, false as GLboolean, m.as_ptr() as *const GLfloat),
-                    Uniform::Matrix2x3(m) => gl::UniformMatrix2x3fv(loc, m.len() as GLsizei, true as GLboolean, m.as_ptr() as *const GLfloat),
-                    Uniform::Matrix3x2(m) => gl::UniformMatrix2x3fv(loc, m.len() as GLsizei, false as GLboolean, m.as_ptr() as *const GLfloat),
-                    Uniform::Matrix2x4(m) => gl::UniformMatrix2x4fv(loc, m.len() as GLsizei, true as GLboolean, m.as_ptr() as *const GLfloat),
-                    Uniform::Matrix4x2(m) => gl::UniformMatrix2x4fv(loc, m.len() as GLsizei, false as GLboolean, m.as_ptr() as *const GLfloat),
-                    Uniform::Matrix3x4(m) => gl::UniformMatrix3x4fv(loc, m.len() as GLsizei, true as GLboolean, m.as_ptr() as *const GLfloat),
-                    Uniform::Matrix4x3(m) => gl::UniformMatrix3x4fv(loc, m.len() as GLsizei, false as GLboolean, m.as_ptr() as *const GLfloat),
-                }
+                val.set(loc);
             }
         }
     }

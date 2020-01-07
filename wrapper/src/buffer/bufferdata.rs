@@ -44,8 +44,6 @@ macro_rules! bufferdata_impl {
 }
 
 bufferdata_impl!{
-    4, i16, Short;
-    4, u16, UShort;
     4, i32, Int;
     4, u32, UInt;
     4, f32, Float;

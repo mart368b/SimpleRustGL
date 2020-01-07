@@ -13,7 +13,7 @@ pub use bufferdata::*;
 pub use readbuffermap::*;
 pub use writebuffermap::*;
 pub use format::Format;
-pub use primitive::{Primitive, IndexPrimitive};
+pub use primitive::Primitive;
 pub use buffertype::*;
 pub use vao::Vao;
 

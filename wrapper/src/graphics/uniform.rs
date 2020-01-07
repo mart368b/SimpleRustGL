@@ -1,100 +1,77 @@
 use gl::types::*;
 
-pub enum Uniform<'a> {
-    Int(GLint),
-    Int2(GLint, GLint),
-    Int3(GLint, GLint, GLint),
-    Int4(GLint, GLint, GLint, GLint),
-    IntVec(&'a [GLint]),
-    IntVec2(&'a [[GLint; 2]]),
-    IntVec3(&'a [[GLint; 3]]),
-    IntVec4(&'a [[GLint; 4]]),
-    UInt(GLuint),
-    UInt2(GLuint, GLuint),
-    UInt3(GLuint, GLuint, GLuint),
-    UInt4(GLuint, GLuint, GLuint, GLuint),
-    UIntVec(&'a [GLuint]),
-    UIntVec2(&'a [[GLuint; 2]]),
-    UIntVec3(&'a [[GLuint; 3]]),
-    UIntVec4(&'a [[GLuint; 4]]),
-    Float(GLfloat),
-    Float2(GLfloat, GLfloat),
-    Float3(GLfloat, GLfloat, GLfloat),
-    Float4(GLfloat, GLfloat, GLfloat, GLfloat),
-    FloatVec(&'a [GLfloat]),
-    FloatVec2(&'a [[GLfloat; 2]]),
-    FloatVec3(&'a [[GLfloat; 3]]),
-    FloatVec4(&'a [[GLfloat; 4]]),
-    Matrix2(&'a [[[GLfloat; 2]; 2]]),
-    Matrix3(&'a [[[GLfloat; 3]; 3]]),
-    Matrix4(&'a [[[GLfloat; 4]; 4]]),
-    Matrix2x3(&'a [[[GLfloat; 2]; 3]]),
-    Matrix3x2(&'a [[[GLfloat; 3]; 2]]),
-    Matrix2x4(&'a [[[GLfloat; 2]; 4]]),
-    Matrix4x2(&'a [[[GLfloat; 4]; 2]]),
-    Matrix3x4(&'a [[[GLfloat; 3]; 4]]),
-    Matrix4x3(&'a [[[GLfloat; 4]; 3]]),
+pub trait Uniform<T> {
+    unsafe fn set(self, loc: GLint);
 }
 
-macro_rules! uniform_from {
-    ($name:ident, &$ty:ty) => {
-        impl<'a> From<&'a $ty> for Uniform<'a> 
-        {
-            fn from(v: &'a $ty) -> Uniform<'a> {
-                Uniform::$name(v)
+macro_rules! Uniform {
+    ($ty:ty, $name0:ident, $name1:ident, $name2:ident, $name3:ident, $name4:ident, $name5:ident, $name6:ident, $name7:ident) => {
+        impl<'a> Uniform<$ty> for $ty {
+            unsafe fn set(self, loc: GLint) {
+                gl::$name0(loc, self);
+            }
+        }
+        impl<'a> Uniform<&'a [$ty; 2]> for &'a [$ty; 2] {
+            unsafe fn set(self, loc: GLint) {
+                gl::$name1(loc, self[0], self[1]);
+            }
+        }
+        impl<'a> Uniform<&'a [$ty; 3]> for &'a [$ty; 3] {
+            unsafe fn set(self, loc: GLint) {
+                gl::$name2(loc, self[0], self[1], self[2]);
+            }
+        }
+        impl<'a> Uniform<&'a [$ty; 4]> for &'a [$ty; 4] {
+            unsafe fn set(self, loc: GLint) {
+                gl::$name3(loc, self[0], self[1], self[2], self[3]);
+            }
+        }
+
+        impl<'a> Uniform<&'a [$ty]> for &'a [$ty] {
+            unsafe fn set(self, loc: GLint) {
+                gl::$name4(loc, self.len() as GLsizei, self.as_ptr() as *const $ty)
+            }
+        }
+        impl<'a> Uniform<&'a [[$ty; 2]]> for &'a [[$ty; 2]] {
+            unsafe fn set(self, loc: GLint) {
+                gl::$name5(loc, self.len() as GLsizei, self.as_ptr() as *const $ty)
+            }
+        }
+        impl<'a> Uniform<&'a [[$ty; 3]]> for &'a [[$ty; 3]] {
+            unsafe fn set(self, loc: GLint) {
+                gl::$name6(loc, self.len() as GLsizei, self.as_ptr() as *const $ty)
+            }
+        }
+        impl<'a> Uniform<&'a [[$ty; 4]]> for &'a [[$ty; 4]] {
+            unsafe fn set(self, loc: GLint) {
+                gl::$name7(loc, self.len() as GLsizei, self.as_ptr() as *const $ty)
             }
         }
     };
-    ($name1:ident, $name2:ident, $name3:ident, $name4:ident, $ty:ty) => {
-        impl<'a> From<&'a $ty> for Uniform<'a> {
-            fn from(v: &'a $ty) -> Uniform<'a> {
-                Uniform::$name1(*v)
-            }
-        }
-        impl<'a> From<&'a [$ty; 2]> for Uniform<'a> {
-            fn from(v: &'a [$ty; 2]) -> Uniform<'a> {
-                Uniform::$name2(v[0], v[1])
-            }
-        }
-        impl<'a> From<&'a [$ty; 3]> for Uniform<'a> {
-            fn from(v: &'a [$ty; 3]) -> Uniform<'a> {
-                Uniform::$name3(v[0], v[1], v[2])
-            }
-        }
-        impl<'a> From<&'a [$ty; 4]> for Uniform<'a> {
-            fn from(v: &'a [$ty; 4]) -> Uniform<'a> {
-                Uniform::$name4(v[0], v[1], v[2], v[3])
+    (matrix, $name:ident, $ty0:ty, $inverse:ident) => {
+        impl<'a> Uniform<&'a [$ty0]> for &'a [$ty0] {
+            unsafe fn set(self, loc: GLint) {
+                gl::$name(loc, self.len() as GLsizei, $inverse as GLboolean, self.as_ptr() as *const GLfloat);
             }
         }
     };
+    ($($t0:tt),+: $($($t1:tt),+):+) => {
+        Uniform! { $($t0),+ }
+        Uniform! { $($($t1),+):+ }
+    }
 }
 
-uniform_from!(Int, Int2, Int3, Int4, i32);
-uniform_from!(UInt, UInt2, UInt3, UInt4, u32);
-uniform_from!(Float, Float2, Float3, Float4, f32);
-
-uniform_from!(IntVec, &[GLint]);
-uniform_from!(IntVec2, &[[GLint; 2]]);
-uniform_from!(IntVec3, &[[GLint; 3]]);
-uniform_from!(IntVec4, &[[GLint; 4]]);
-
-uniform_from!(UIntVec, &[GLuint]);
-uniform_from!(UIntVec2, &[[GLuint; 2]]);
-uniform_from!(UIntVec3, &[[GLuint; 3]]);
-uniform_from!(UIntVec4, &[[GLuint; 4]]);
-
-uniform_from!(FloatVec, &[GLfloat]);
-uniform_from!(FloatVec2, &[[GLfloat; 2]]);
-uniform_from!(FloatVec3, &[[GLfloat; 3]]);
-uniform_from!(FloatVec4, &[[GLfloat; 4]]);
-
-uniform_from!(Matrix2, &[[[GLfloat; 2]; 2]]);
-uniform_from!(Matrix3, &[[[GLfloat; 3]; 3]]);
-uniform_from!(Matrix4, &[[[GLfloat; 4]; 4]]);
-
-uniform_from!(Matrix2x3, &[[[GLfloat; 2]; 3]]);
-uniform_from!(Matrix3x2, &[[[GLfloat; 3]; 2]]);
-uniform_from!(Matrix2x4, &[[[GLfloat; 2]; 4]]);
-uniform_from!(Matrix4x2, &[[[GLfloat; 4]; 2]]);
-uniform_from!(Matrix3x4, &[[[GLfloat; 3]; 4]]);
-uniform_from!(Matrix4x3, &[[[GLfloat; 4]; 3]]);
+Uniform! {
+    i32, Uniform1i, Uniform2i, Uniform3i, Uniform4i, Uniform1iv, Uniform2iv, Uniform3iv, Uniform4iv:
+    u32, Uniform1ui, Uniform2ui, Uniform3ui, Uniform4ui, Uniform1uiv, Uniform2uiv, Uniform3uiv, Uniform4uiv:
+    f32, Uniform1f, Uniform2f, Uniform3f, Uniform4f, Uniform1fv, Uniform2fv, Uniform3fv, Uniform4fv:
+    matrix, UniformMatrix2fv, [[GLfloat; 2]; 2], false:
+    matrix, UniformMatrix3fv, [[GLfloat; 3]; 3], false:
+    matrix, UniformMatrix4fv, [[GLfloat; 4]; 4], false:
+    matrix, UniformMatrix2x3fv, [[GLfloat; 2]; 3], true:
+    matrix, UniformMatrix2x3fv, [[GLfloat; 3]; 2], false:
+    matrix, UniformMatrix2x4fv, [[GLfloat; 2]; 4], true:
+    matrix, UniformMatrix2x4fv, [[GLfloat; 4]; 2], false:
+    matrix, UniformMatrix3x4fv, [[GLfloat; 3]; 4], true:
+    matrix, UniformMatrix3x4fv, [[GLfloat; 4]; 3], false
+}

@@ -1,5 +1,5 @@
 pub mod graphics;
-pub mod buffer;
+pub mod storage;
 pub(crate) mod error;
 
 pub fn get_value<T, F>(mut v: T, f: F) -> T

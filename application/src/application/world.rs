@@ -1,4 +1,4 @@
-use wrapper::buffer::*;
+use wrapper::storage::buffer::*;
 use crate::{Vector2, clamp};
 
 use anyhow::Result;

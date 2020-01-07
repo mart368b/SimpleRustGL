@@ -4,12 +4,14 @@ mod format;
 
 mod buffer;
 mod buffertype;
-mod buffermap;
+mod readbuffermap;
+mod writebuffermap;
 mod bufferdata;
 
 pub use buffer::*;
 pub use bufferdata::*;
-pub use buffermap::*;
+pub use readbuffermap::*;
+pub use writebuffermap::*;
 pub use format::Format;
 pub use primitive::{Primitive, IndexPrimitive};
 pub use buffertype::*;

@@ -9,11 +9,11 @@ where
     Kind: BufferType,
     Acces: BufferAcces
 {
-    id: GLuint,
-    len: usize,
-    data: PhantomData<T>,
-    kind: PhantomData<Kind>,
-    acces: PhantomData<Acces>,
+    pub(crate) id: GLuint,
+    pub(crate) len: usize,
+    pub(crate) data: PhantomData<T>,
+    pub(crate) kind: PhantomData<Kind>,
+    pub(crate) acces: PhantomData<Acces>,
 }
 
 impl<T, Kind, Acces> Buffer<T, Kind, Acces>
@@ -71,7 +71,7 @@ where
         }
     }
 
-    pub fn read<'a>(&self) -> ReadBufferMap<'a, T>{
+    pub fn read<'a>(&self) -> ReadBufferMap<'_, T, Kind, Acces>{
         let ptr = unsafe {
             gl::MapBuffer(
                 Kind::value(),
@@ -79,11 +79,13 @@ where
             )
         } as *const T;
 
+        let val = unsafe {
+            std::slice::from_raw_parts(ptr as *const T, self.len)
+        };
+
         ReadBufferMap {
-            id: self.id,
-            buffer: unsafe {
-                std::slice::from_raw_parts(ptr as *const T, self.len)
-            }
+            buff: self,
+            buffer: val
         }
     }
 
@@ -95,7 +97,7 @@ where
     T: Sized + BufferData,
     Kind: BufferType,
 {
-    pub fn write<'a>(&self) -> WriteBufferMap<'a, T>{
+    pub fn write<'a>(&mut self) -> WriteBufferMap<'_, T, Kind, DynamicBuffer>{
         let ptr = unsafe {
             gl::MapBuffer(
                 Kind::value(),
@@ -103,11 +105,13 @@ where
             )
         } as *const T;
 
+        let val = unsafe {
+            std::slice::from_raw_parts_mut(ptr as *mut T, self.len)
+        };
+
         WriteBufferMap {
-            id: self.id,
-            buffer: unsafe {
-                std::slice::from_raw_parts_mut(ptr as *mut T, self.len)
-            }
+            buff: self,
+            buffer: val
         }
     }
 }

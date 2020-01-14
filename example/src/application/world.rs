@@ -1,4 +1,4 @@
-use wrapper::storage::buffer::*;
+use simple_gl::storage::buffer::*;
 use crate::{Vector2, clamp};
 
 use anyhow::Result;

@@ -1,5 +1,14 @@
-[workspace]
-members = [
-    "application",
-    "wrapper"
-]
+[package]
+name = "simple_gl"
+version = "0.1.0"
+authors = ["Martin Pinholt <mapi@itu.dk>"]
+edition = "2018"
+
+[dependencies]
+nalgebra = "*"
+anyhow = "1.0.26"
+gl = "0.14.0"
+
+[lib]
+name = "wrapper"
+path = "src/lib.rs"

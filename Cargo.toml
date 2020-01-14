@@ -10,5 +10,5 @@ anyhow = "1.0.26"
 gl = "0.14.0"
 
 [lib]
-name = "wrapper"
+name = "simple_gl"
 path = "src/lib.rs"

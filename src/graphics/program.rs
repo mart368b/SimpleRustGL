@@ -22,7 +22,7 @@ impl<T> ProgramAttachment for Shader<T>
 
 pub struct Program {
     id: GLuint,
-    shaders: Vec<Arc<dyn ProgramAttachment + Sync>>,
+    shaders: Vec<Arc<dyn ProgramAttachment>>,
     uniform_locations: HashMap<String, GLint>,
 }
 

@@ -2,7 +2,7 @@ use gl::types::*;
 use super::*;
 use anyhow::{Result, anyhow};
 use crate::error::get_program_error;
-use std::rc::Rc;
+use std::sync::Arc;
 use crate::get_value;
 use std::collections::HashMap;
 use std::borrow::Borrow;
@@ -22,7 +22,7 @@ impl<T> ProgramAttachment for Shader<T>
 
 pub struct Program {
     id: GLuint,
-    shaders: Vec<Rc<dyn ProgramAttachment>>,
+    shaders: Vec<Arc<dyn ProgramAttachment>>,
     uniform_locations: HashMap<String, GLint>,
 }
 
@@ -35,7 +35,7 @@ impl Program {
         }
     }
 
-    pub fn from_shaders(shaders: Vec<Rc<dyn ProgramAttachment>>) -> Result<Program> 
+    pub fn from_shaders(shaders: Vec<Arc<dyn ProgramAttachment>>) -> Result<Program> 
     {
         let mut program = Program::new();
         for shader in shaders {
@@ -49,7 +49,7 @@ impl Program {
         self.id
     }
 
-    pub fn attach(&mut self, shader: Rc<dyn ProgramAttachment>) {
+    pub fn attach(&mut self, shader: Arc<dyn ProgramAttachment>) {
         unsafe {
             gl::AttachShader(self.id, shader.id())
         }

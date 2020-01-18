@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use std::rc::Rc;
+use std::sync::Arc;
 use std::include_str;
 
 pub use wrapper::graphics::*;
@@ -23,9 +23,9 @@ impl Graphics {
         )?;
 
         let mut program = Program::from_shaders(vec![
-            Rc::new(vert_shader),
-            Rc::new(geom_shader),
-            Rc::new(frag_shader),
+            Arc::new(vert_shader),
+            Arc::new(geom_shader),
+            Arc::new(frag_shader),
         ])?;
         program.set_used();
 

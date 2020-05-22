@@ -1,4 +1,4 @@
-use gl::types::*;
+
 use std::ops::Deref;
 use super::*;
 

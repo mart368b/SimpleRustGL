@@ -3,7 +3,7 @@ use anyhow::Result;
 use std::rc::Rc;
 use std::include_str;
 
-pub use wrapper::graphics::*;
+pub use simple_gl::graphics::*;
 
 pub struct Graphics {
     pub program: Program

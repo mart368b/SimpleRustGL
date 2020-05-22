@@ -23,7 +23,7 @@ where
     Acces: BufferAcces
 {
     pub fn new(data: &[T]) -> Buffer<T, Kind, Acces> {
-        let id = get_value(0, |id|unsafe {
+        let id = get_value(0, |id| unsafe {
             gl::GenBuffers(1, id);
         });
 

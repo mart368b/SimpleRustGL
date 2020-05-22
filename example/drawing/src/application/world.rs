@@ -85,25 +85,26 @@ impl World {
     }
 
     pub fn add(&mut self, pos: Vector2, amount: f32) {
-        let mut avbo = self.avbo.write();
-        let map = &mut *avbo;
         let pos0 = Vector2::new(pos.index(0).floor(), pos.index(1).floor());
         let pos1 = pos0 + Vector2::new(1., 0.);
         let pos2 = pos0 + Vector2::new(0., 1.);
         let pos3 = pos0 + Vector2::new(1., 1.);
         
         let max_dist: f32 = 45f32.sin() * 2.;
-
+        
         let ratio0 = 1. - (pos.metric_distance(&pos0) / max_dist);
         let ratio1 = 1. - (pos.metric_distance(&pos1) / max_dist);
         let ratio2 = 1. - (pos.metric_distance(&pos2) / max_dist);
         let ratio3 = 1. - (pos.metric_distance(&pos3) / max_dist);
-
+        
         let index0 = (pos0.index(0) + pos0.index(1) * (self.xcount + 1) as f32) as usize;
         let index1 = index0 + 1;
         let index2 = index0 + 1 + self.xcount;
         let index3 = index0 + 2 + self.xcount;
-
+        
+        
+        let mut avbo = self.avbo.write();
+        let map = &mut *avbo;
         map[index0] = clamp(0., 1., map[index0] + amount * ratio0);
         map[index1] = clamp(0., 1., map[index1] + amount * ratio1);
         map[index2] = clamp(0., 1., map[index2] + amount * ratio2);
